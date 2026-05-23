@@ -1,0 +1,171 @@
+KOI.ID: Fine-Grained Aquatic Phenotype Classification Through Modular Computer Vision Architectures in Uncontrolled Pond Environments
+
+Abstract
+
+Fine-grained visual classification (FGVC) remains one of the most challenging problem domains in modern computer vision due to the extremely small inter-class variance and large intra-class variance present across visually similar categories (Fine-Grained Visual Recognition literature; see also Lin et al., 2017). These challenges become significantly more severe when inference occurs in uncontrolled real-world environments containing reflections, motion blur, occlusion, dynamic lighting, and non-rigid biological deformation.
+
+This paper presents KOI.ID, a modular computer vision research system designed to identify ornamental koi fish phenotypes within uncontrolled pond environments through a multi-stage perception pipeline. The architecture evolves from a basic object detection workflow into a layered system incorporating detection, segmentation, Non-Maximum Suppression (NMS), object isolation, and fine-grained classification (Girshick, 2015; Ren et al., 2015; He et al., 2017).
+
+Unlike conventional benchmark-driven computer vision systems trained on curated datasets, KOI.ID operates in visually unstable aquatic environments where environmental noise frequently dominates semantic signal. The system therefore investigates how segmentation-assisted pipelines and suppression-based filtering can improve downstream classification stability by reducing shortcut learning.
+
+Particular emphasis is placed on Non-Maximum Suppression, originally formalized in modern object detection pipelines such as Faster R-CNN and YOLO-family detectors, where it is used to remove redundant overlapping bounding boxes (Ren et al., 2015; Redmon et al., 2016). In this project, NMS becomes a critical stabilization mechanism in dense multi-object aquatic scenes.
+
+This paper documents architectural evolution, data engineering tradeoffs, annotation strategies, environmental constraints, and system-level failure modes observed during development.
+
+⸻
+
+1. Introduction
+
+Modern computer vision systems have achieved substantial progress due to deep convolutional networks, large-scale datasets such as ImageNet (Krizhevsky et al., 2012), and architectural advances including residual networks and transformer-based vision models. Despite this progress, real-world deployment environments remain significantly more challenging than benchmark datasets due to environmental unpredictability.
+
+Aquatic environments represent a particularly difficult domain for computer vision systems. Water introduces specular reflections, glare, refractive distortion, motion artifacts, and dynamic illumination changes that violate common assumptions in object detection pipelines.
+
+These effects become especially problematic when combined with fine-grained classification tasks, where class boundaries are inherently subtle and visually overlapping.
+
+KOI.ID was developed to investigate whether modular vision architectures could reliably perform fine-grained phenotype classification under these conditions.
+
+Koi fish are particularly suitable for this problem domain because they exhibit high intra-class visual variance and low inter-class separation across more than one hundred recognized phenotypes. Differences are often limited to subtle pigment distribution, scale texture, or metallic reflectance properties.
+
+The system therefore serves as an experimental platform for studying fine-grained biological vision under uncontrolled environmental conditions.
+
+⸻
+
+2. Background and Motivation
+
+2.1 Fine-Grained Visual Classification
+
+Fine-grained visual classification (FGVC) focuses on distinguishing visually similar subcategories within a broader class hierarchy. Prior work in FGVC demonstrates that such systems are highly sensitive to feature localization and background contamination (Lin et al., 2017; Krause et al., 2013).
+
+Common domains include species recognition, medical imaging, and industrial inspection. In all cases, inter-class variance is minimal while intra-class variance is high.
+
+Koi classification belongs to this domain, requiring discrimination of subtle morphological and pigment-based differences that are often difficult even for human experts.
+
+⸻
+
+2.2 Real-World Vision Constraints
+
+Standard computer vision datasets typically assume controlled conditions. In contrast, pond environments violate these assumptions entirely.
+
+Real-world koi imagery includes overlapping subjects, reflection artifacts, motion blur, and dynamic lighting changes that significantly degrade model robustness.
+
+Early experiments revealed strong evidence of shortcut learning, where models associated environmental artifacts such as brightness and reflection intensity with phenotype labels rather than learning biological structure. This phenomenon is well documented in deep learning literature (Geirhos et al., 2020).
+
+These observations motivated a shift toward segmentation-assisted and modular architectures.
+
+⸻
+
+3. System Architecture
+
+The KOI.ID pipeline follows a modular multi-stage architecture inspired by modern object detection systems such as Faster R-CNN (Ren et al., 2015) and Mask R-CNN (He et al., 2017).
+
+The pipeline consists of detection, segmentation, Non-Maximum Suppression, object isolation, and classification stages.
+
+Detection is used primarily for localization, while segmentation reduces environmental noise prior to classification. This separation of concerns improves robustness and interpretability.
+
+⸻
+
+4. Non-Maximum Suppression (NMS)
+
+4.1 Role in Detection Stability
+
+Non-Maximum Suppression is a standard component of modern object detection pipelines (Ren et al., 2015; Redmon et al., 2016). It addresses the problem of redundant bounding box predictions for a single object.
+
+In aquatic environments, duplicate detections are amplified due to reflections, occlusion, and overlapping fish, making NMS a critical stabilization step.
+
+Without NMS, multiple overlapping detections propagate into downstream segmentation and classification stages, producing redundant inference and unstable predictions.
+
+⸻
+
+4.2 Operational Principle
+
+NMS operates by sorting candidate detections by confidence score, selecting the highest confidence prediction, and removing overlapping detections whose Intersection over Union (IoU) exceeds a defined threshold. IoU is defined as the ratio of intersection area to union area of two bounding boxes (Ren et al., 2015).
+
+This process repeats iteratively until all detections are processed.
+
+Although computationally simple, this step is essential for maintaining structured object-level representations in downstream pipelines.
+
+⸻
+
+4.3 System-Level Impact
+
+Improper NMS tuning leads to either over-suppression of adjacent fish or under-suppression of duplicate detections. Both cases negatively impact classification stability.
+
+Empirical observations show that NMS quality directly influences downstream phenotype prediction consistency, highlighting its importance beyond simple post-processing.
+
+⸻
+
+5. Segmentation and Object Isolation
+
+Segmentation techniques are widely used in computer vision to improve object-level understanding (He et al., 2017).
+
+In KOI.ID, segmentation is used to remove environmental contamination and isolate fish from reflective water backgrounds.
+
+Instance segmentation is preferred over semantic segmentation due to the presence of multiple overlapping fish within the same frame.
+
+Segmentation significantly improves classification performance by reducing background bias and forcing models to rely on morphological features rather than environmental artifacts.
+
+⸻
+
+6. Dataset Engineering and Annotation
+
+Dataset construction is a critical component of fine-grained vision systems. Prior work shows that dataset bias can significantly affect model generalization (Torralba & Efros, 2011).
+
+KOI.ID relies on manually annotated datasets including segmentation masks, bounding boxes, and phenotype labels.
+
+Class imbalance and annotation inconsistency represent major challenges, requiring careful dataset balancing and validation splitting.
+
+⸻
+
+7. Reflection and Shortcut Learning
+
+Shortcut learning occurs when models rely on spurious correlations instead of semantic features (Geirhos et al., 2020).
+
+In KOI.ID, reflection intensity and water brightness were frequently learned as proxy signals for phenotype classification, leading to systematic misclassification of metallic koi varieties.
+
+Segmentation and augmentation strategies were introduced to mitigate these effects.
+
+⸻
+
+8. Classification Architecture
+
+Fine-grained classification requires sensitivity to subtle morphological features. Prior research demonstrates that localization of discriminative regions is critical for FGVC performance (Lin et al., 2017).
+
+In KOI.ID, classification performance is improved using temporal smoothing and multi-frame inference strategies to reduce variance across frames.
+
+⸻
+
+9. Broader Implications
+
+The KOI.ID system demonstrates generalizable principles applicable to wildlife monitoring, industrial inspection, and medical imaging systems.
+
+Key findings align with prior research emphasizing the importance of modular architectures, high-quality annotation, and robust preprocessing pipelines in real-world vision systems.
+
+⸻
+
+10. Conclusion
+
+KOI.ID demonstrates that fine-grained classification in uncontrolled environments requires more than high-capacity models. System-level stability depends on detection quality, segmentation accuracy, suppression filtering, and dataset integrity.
+
+Non-Maximum Suppression plays a critical role in stabilizing multi-object detection pipelines, particularly in environments with heavy occlusion and reflective noise.
+
+Overall, the system highlights the importance of modular perception pipelines in deploying computer vision systems outside controlled academic benchmarks.
+
+⸻
+
+References
+
+Girshick, R. (2015). Fast R-CNN. ICCV.
+
+He, K., Gkioxari, G., Dollár, P., & Girshick, R. (2017). Mask R-CNN. TPAMI.
+
+Krizhevsky, A., Sutskever, I., & Hinton, G. (2012). ImageNet Classification with Deep CNNs.
+
+Lin, T.-Y., et al. (2017). Feature Pyramid Networks for Object Detection. CVPR.
+
+Ren, S., He, K., Girshick, R., & Sun, J. (2015). Faster R-CNN. NeurIPS.
+
+Redmon, J., et al. (2016). You Only Look Once. CVPR.
+
+Torralba, A., & Efros, A. A. (2011). Unbiased Look at Dataset Bias. CVPR.
+
+Geirhos, R., et al. (2020). Shortcut Learning in Deep Neural Networks. Nature Machine Intelligence
