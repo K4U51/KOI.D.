@@ -1,0 +1,197 @@
+KOI.ID: Fine-Grained Aquatic Phenotype Classification Through Modular Computer Vision Architectures in Uncontrolled Pond Environments
+
+Abstract
+
+Fine-grained visual classification (FGVC) remains one of the most difficult problem domains in modern computer vision due to the extremely small visual distinctions that often separate neighboring classes. Unlike coarse classification tasks where categories differ significantly in shape or appearance, fine-grained classification requires models to identify subtle structural, chromatic, and textural variations while remaining robust against environmental instability. These challenges become substantially more severe when inference occurs in uncontrolled real-world environments containing reflections, motion blur, dynamic lighting, occlusion, non-rigid deformation, and overlapping biological subjects.
+
+This paper presents KOI.ID, a modular computer vision research project focused on identifying ornamental koi fish phenotypes within uncontrolled pond environments through a multi-stage perception architecture. The system evolved from a simple bounding-box detection workflow into a layered pipeline emphasizing object detection, segmentation-assisted isolation, Non-Maximum Suppression (NMS), crop refinement, and fine-grained phenotype inference.
+
+Unlike conventional computer vision pipelines optimized for curated datasets and rigid subjects, KOI.ID intentionally operates within visually unstable aquatic environments where environmental contamination frequently dominates the scene itself. The project therefore investigates the limitations of traditional detection-first architectures and explores how segmentation-assisted workflows can improve downstream classification stability by reducing environmental shortcut learning.
+
+Particular emphasis is placed on the role of Non-Maximum Suppression within dense aquatic scenes where overlapping fish, reflective artifacts, and unstable object boundaries generate duplicate detections that destabilize classification systems. The project further explores how upstream perception quality directly influences downstream phenotype recognition and demonstrates that reliable biological classification in noisy environments requires carefully engineered modular perception pipelines rather than monolithic end-to-end architectures.
+
+This paper documents the architectural evolution of the system, the engineering tradeoffs encountered throughout development, the role of segmentation and NMS in aquatic computer vision, the effects of reflection-induced shortcut learning, and the broader implications of deploying lightweight vision systems within biologically unstable real-world environments.
+
+⸻
+
+1. Introduction
+
+Modern computer vision systems have achieved substantial performance improvements over the last decade due to advancements in deep neural networks, transfer learning, transformer-based perception architectures, and large-scale dataset availability. These developments have enabled object detection and image classification systems capable of operating at near-human performance levels across many benchmark tasks. Despite these advances, real-world deployment environments remain considerably more difficult than the controlled datasets commonly used during academic evaluation.
+
+Aquatic environments represent a particularly hostile domain for computer vision systems. Water surfaces introduce complex optical distortions including specular reflections, glare, refractive warping, unstable brightness distributions, surface rippling, and dynamic environmental lighting. These effects continuously alter the apparent appearance of biological subjects while simultaneously introducing visual artifacts unrelated to the underlying object itself.
+
+The challenge becomes even more severe when the target task involves fine-grained biological classification. Koi fish represent an unusually difficult visual domain because meaningful phenotype distinctions are often subtle, subjective, and highly sensitive to environmental conditions. More than one hundred recognized koi varieties and sub-varieties exist, many of which differ only through small variations in pigmentation boundaries, scale organization, metallic sheen, or pattern arrangement. Fish continuously deform during movement, reflections alter apparent coloration, and multiple subjects frequently overlap within crowded pond scenes.
+
+These characteristics create a uniquely difficult perception problem where environmental instability and biological ambiguity interact simultaneously.
+
+KOI.ID was developed as both a computer vision engineering project and an experimental research platform intended to explore whether lightweight modular architectures could perform reliable phenotype classification under uncontrolled aquatic conditions. Rather than relying on curated laboratory imagery, the project intentionally focused on real pond environments containing reflections, occlusion, overlapping fish, inconsistent camera angles, motion blur, and severe background contamination.
+
+As development progressed, the project evolved beyond simple object detection and became a broader investigation into how perception pipelines behave when environmental instability dominates the visual scene. The resulting architecture increasingly emphasized modularity, interpretability, segmentation-assisted isolation, suppression filtering, and downstream classification stabilization.
+
+The project therefore serves as a compact but highly effective experimental platform for studying fine-grained biological computer vision operating outside controlled benchmark environments.
+
+⸻
+
+2. Background and Motivation
+
+2.1 Fine-Grained Visual Classification
+
+Fine-grained visual classification refers to the process of identifying highly similar subclasses belonging to a broader parent category. Unlike conventional classification tasks where categories differ substantially in appearance, FGVC systems must recognize subtle distinctions involving texture, morphology, pigmentation, shape distribution, or structural organization.
+
+Common examples include bird species recognition, vehicle trim identification, medical imaging diagnostics, plant phenotype analysis, wildlife monitoring, and livestock classification. In all of these domains, inter-class variance remains extremely small while intra-class variance often becomes quite large due to pose variation, environmental lighting, deformation, occlusion, or developmental differences.
+
+Koi phenotype recognition belongs directly within this category. Two fish belonging to different varieties may appear nearly identical except for small variations in scale texture or pattern placement. Simultaneously, two fish belonging to the same phenotype may appear visually inconsistent depending on water distortion, reflection intensity, age, viewing angle, or movement.
+
+These conditions create substantial challenges for deep learning systems because neural networks naturally optimize toward statistically efficient predictive signals rather than semantically meaningful biological structure. When environmental artifacts correlate with class labels, models frequently learn shortcut features unrelated to the actual subject itself.
+
+This behavior emerged repeatedly throughout development and became one of the defining observations of the project.
+
+⸻
+
+2.2 Real-World Aquatic Vision Constraints
+
+Many academic computer vision datasets operate under semi-controlled conditions where subjects remain centered within the frame, backgrounds are simplified, and lighting conditions remain relatively stable. Pond environments provide none of these guarantees.
+
+Instead, aquatic imagery contains overlapping fish, moving reflections, refracted lighting, surface ripples, inconsistent exposure levels, dynamic shadows, compression artifacts, and severe environmental noise. Fish may partially disappear beneath reflective surfaces or distort visually due to wave motion. In crowded ponds, multiple subjects frequently intersect visually, making individual object separation difficult even for human observers.
+
+Early versions of the KOI.ID pipeline demonstrated that conventional bounding-box classification workflows struggled significantly under these conditions. Bounding-box crops routinely included reflections, neighboring fish, surface highlights, and pond debris. As a result, classifiers began learning environmental correlations rather than fish-specific phenotype features.
+
+Bright reflective regions became associated with metallic koi classes. Water coloration altered confidence distributions. Neighboring fish contaminated crop regions and destabilized phenotype inference. Surface glare frequently produced inconsistent predictions across sequential frames of the same subject.
+
+These observations motivated a fundamental architectural transition away from monolithic classification systems and toward modular segmentation-assisted perception pipelines designed to progressively reduce ambiguity at each stage of inference.
+
+⸻
+
+3. System Architecture
+
+The final KOI.ID architecture followed a layered perception design separating localization, segmentation, suppression filtering, object isolation, and classification into independent but interconnected processing stages.
+
+The first stage performs object detection to identify candidate koi regions within an image. Detection models generate bounding boxes and associated confidence scores representing probable fish locations. While object detection remained important for localization, it gradually became clear that detection alone was insufficient for stable phenotype recognition.
+
+Bounding-box-only workflows introduced severe environmental contamination because crops frequently contained water reflections, shadows, neighboring fish, pond coloration, and background artifacts unrelated to the target subject. These environmental features often became easier for the classifier to learn than the biological morphology of the fish itself.
+
+To address this issue, the system increasingly relied on segmentation-assisted isolation. Segmentation masks enabled the architecture to separate fish bodies from surrounding environmental noise prior to classification. This substantially improved crop purity and reduced environmental shortcut learning.
+
+The architecture therefore evolved into a staged perception pipeline where each component exists primarily to reduce ambiguity for the next. Detection narrows the search space, segmentation removes environmental contamination, Non-Maximum Suppression stabilizes duplicate detections, crop refinement improves subject isolation, and fine-grained classification attempts to infer biologically meaningful phenotype characteristics.
+
+This modular design also improved interpretability and debugging capability because individual stages could be evaluated independently rather than relying on opaque end-to-end behavior.
+
+⸻
+
+4. Non-Maximum Suppression in Aquatic Computer Vision
+
+Non-Maximum Suppression became one of the most important stabilization mechanisms within the entire perception pipeline.
+
+Object detection systems naturally produce multiple overlapping candidate boxes for the same subject because convolutional feature maps activate across neighboring receptive fields. In aquatic environments, this problem becomes amplified by reflective distortion, unstable subject boundaries, partial visibility, body deformation, and overlapping fish schools.
+
+Without suppression filtering, a single koi may generate multiple high-confidence detections simultaneously. These duplicate detections propagate instability throughout the system by producing redundant crops, inflated object counts, inconsistent classification predictions, and unstable tracking behavior.
+
+The operational logic behind NMS is conceptually simple but architecturally critical. Candidate detections are first sorted according to confidence score. The highest-confidence detection becomes the primary object hypothesis. The algorithm then computes overlap ratios between this detection and neighboring bounding boxes using the Intersection over Union metric. Any detection exceeding the configured overlap threshold is removed under the assumption that it represents the same underlying object.
+
+This process repeats iteratively until all remaining detections have been evaluated.
+
+Although mathematically straightforward, threshold tuning became highly sensitive within dense aquatic scenes. Aggressive suppression thresholds occasionally removed legitimate neighboring fish when subjects overlapped visually. Weak thresholds allowed duplicate detections to persist, increasing downstream instability.
+
+The project demonstrated that NMS behavior directly influences classification quality. Slight variations in crop boundaries frequently altered environmental contamination patterns and therefore changed phenotype predictions. Reflective highlights across the fish body often produced several overlapping detections with slightly different crop regions. Some crops classified correctly while others collapsed toward metallic phenotype predictions due to reflection intensity.
+
+Improved suppression tuning substantially stabilized downstream inference and reinforced a central conclusion of the project: classification quality depends heavily on upstream detection stability.
+
+⸻
+
+5. Segmentation and Object Isolation
+
+Segmentation became increasingly important as development progressed because bounding-box-only workflows consistently introduced environmental contamination into downstream classification stages.
+
+Traditional crop regions frequently included water reflections, neighboring fish, pond debris, surface highlights, and unstable background coloration. These artifacts encouraged classifiers to learn correlations unrelated to biological structure and reduced phenotype stability across varying environmental conditions.
+
+The system therefore explored segmentation-assisted isolation methods capable of separating biological subjects from surrounding environmental noise.
+
+Semantic segmentation provided effective environmental separation by assigning category labels at the pixel level. However, semantic segmentation struggled in crowded pond scenes where multiple fish overlapped visually. Instance segmentation proved more effective because each fish could be treated as an independent object instance, improving subject separation and crop isolation.
+
+Although instance segmentation introduced increased annotation complexity and computational overhead, it significantly improved downstream classification quality within dense multi-subject scenes.
+
+Segmentation masks also reduced reflection contamination surrounding the fish body itself. This forced classifiers to rely more heavily on morphology, scale structure, pigmentation distribution, and biologically meaningful phenotype characteristics rather than environmental brightness patterns.
+
+The project increasingly demonstrated that segmentation was not simply a preprocessing enhancement but a foundational requirement for stable aquatic computer vision.
+
+⸻
+
+6. Dataset Engineering and Annotation Strategy
+
+One of the largest engineering challenges throughout development involved dataset construction and annotation consistency.
+
+Unlike mature computer vision domains containing extensive public datasets, koi phenotype classification requires highly specialized annotation workflows. The project therefore relied heavily on custom data collection, manual fish labeling, segmentation mask generation, phenotype categorization, and annotation validation.
+
+Annotation quality directly affected downstream model behavior. Loose crops introduced environmental leakage while inconsistent segmentation boundaries reduced subject purity. Reflection inclusion frequently distorted class distributions and encouraged shortcut learning. Partial fish visibility produced ambiguous training samples that destabilized phenotype boundaries.
+
+The project also encountered significant class imbalance problems because certain koi varieties appeared substantially more frequently than others. Without careful balancing, models disproportionately favored dominant classes while minority phenotypes remained poorly represented.
+
+Dataset engineering therefore became an ongoing systems process rather than a one-time preparation step.
+
+Validation splitting required particular attention because improper train-validation distributions produced misleading evaluation metrics. Manual inspection became necessary to ensure that rare classes remained represented across all partitions and that environmental conditions were not unintentionally biased toward specific subsets.
+
+These observations reinforced a broader principle frequently encountered in applied machine learning systems: data quality and annotation consistency often influence performance more heavily than architecture selection alone.
+
+⸻
+
+7. Reflection Contamination and Shortcut Learning
+
+Reflection contamination emerged as one of the dominant failure modes observed during experimentation.
+
+Metallic koi varieties became systematically overpredicted because reflective water surfaces generated brightness distributions visually similar to metallic scaling patterns. Rather than learning biological morphology, classifiers frequently optimized toward environmental intensity features that correlated statistically with specific phenotype labels.
+
+This behavior represents a classic example of shortcut learning in deep neural networks. Models naturally converge toward the easiest available predictive signal rather than the most semantically meaningful feature.
+
+Within pond environments, reflections provided highly accessible predictive shortcuts because bright reflective regions frequently appeared alongside metallic fish during training. As a result, environmental lighting conditions became partially entangled with phenotype identity itself.
+
+The problem became especially severe within crowded scenes where reflections overlapped multiple fish simultaneously. In these conditions, environmental artifacts effectively contaminated class boundaries and destabilized downstream inference.
+
+Several mitigation strategies were explored throughout development, including segmentation-assisted masking, crop refinement, exposure normalization, reflection-aware augmentation, improved suppression filtering, and post-processing cleanup.
+
+Segmentation-assisted isolation proved particularly effective because it reduced surrounding water contamination and forced classifiers to focus more heavily on biologically meaningful morphology rather than environmental brightness artifacts.
+
+These findings reinforced the importance of modular architectures capable of progressively reducing environmental ambiguity before classification occurs.
+
+⸻
+
+8. Fine-Grained Classification Stability
+
+The classification stage represented the most biologically nuanced component of the system.
+
+Models were required to identify subtle distinctions involving scale organization, pigment boundaries, metallic sheen, secondary coloration, body morphology, and pattern geometry. Many of these features remained partially obscured due to water distortion, movement, or unstable lighting conditions.
+
+Single-frame inference frequently produced inconsistent predictions because fish appearance changed dramatically depending on viewing angle and reflection intensity. A fish appearing highly reflective in one frame could appear comparatively matte several milliseconds later due to surface distortion or lighting changes.
+
+To address this instability, the project explored temporal consistency concepts including confidence averaging, multi-frame voting, tracking-assisted inference, and temporal smoothing.
+
+These approaches aimed to reduce momentary prediction instability by incorporating information across multiple observations rather than relying exclusively on isolated frames.
+
+The exploration of temporal inference reinforced another important conclusion of the project: biological classification within dynamic environments benefits substantially from persistent contextual information rather than single-image prediction alone.
+
+⸻
+
+9. Broader Implications
+
+Although centered around koi fish, the architectural lessons derived from KOI.ID extend well beyond aquatic environments.
+
+Similar perception challenges appear throughout wildlife monitoring, livestock analysis, agricultural phenotype recognition, industrial inspection systems, environmental sensing, and medical imaging. In many real-world environments, subjects overlap visually, environmental conditions fluctuate continuously, and meaningful distinctions remain subtle.
+
+The project therefore reinforces several broader engineering principles relevant to deployable computer vision systems.
+
+First, upstream perception quality strongly influences downstream classification stability. Second, segmentation-assisted isolation substantially reduces environmental shortcut learning. Third, Non-Maximum Suppression functions not merely as a post-processing convenience but as a foundational stabilization mechanism within dense multi-object environments. Finally, robust deployment within uncontrolled environments frequently requires modular perception architectures rather than monolithic end-to-end systems.
+
+These findings suggest that reliable real-world computer vision depends as heavily on systems engineering, annotation quality, and environmental robustness as on neural network architecture itself.
+
+⸻
+
+10. Conclusion
+
+KOI.ID evolved from a relatively simple object detection experiment into a broader investigation of fine-grained biological computer vision operating under uncontrolled aquatic conditions.
+
+The project demonstrated that reliable phenotype classification within noisy real-world environments requires substantially more than accurate classification models alone. Detection stability, segmentation quality, suppression filtering, annotation consistency, environmental robustness, and data engineering all contribute directly to downstream performance.
+
+One of the most significant findings was the degree to which upstream perception instability propagates throughout the pipeline. Poor Non-Maximum Suppression destabilized classification. Reflection contamination encouraged shortcut learning. Bounding-box-only workflows introduced environmental bias. Segmentation-assisted isolation improved phenotype recognition by reducing contamination and emphasizing biological structure.
+
+Ultimately, the project demonstrated that deployable real-world computer vision systems must be designed as adaptive perception pipelines capable of handling ambiguity, environmental instability, overlapping subjects, and biologically subtle distinctions simultaneously.
+
+As lightweight artificial intelligence systems continue expanding into uncontrolled real-world environments, projects such as KOI.ID provide valuable insight into the architectural compromises, stabilization strategies, and data-centric engineering practices necessary for reliable deployment beyond controlled laboratory conditions.
